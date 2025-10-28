@@ -71,8 +71,15 @@ internal class MainForm : Form
         await using var pipeStream = new AnonymousPipeClientStream(PipeDirection.In, pipeHandle);
         using var reader = new StreamReader(pipeStream);
         var text = await reader.ReadToEndAsync();
+        var title = "Redirect";
 
-        SetContent("Redirect", text);
+        // title?
+        if (_args.Length >= 4 && _args[2] == "-t")
+        {
+            title = _args[3];
+        }
+
+        SetContent(title, text);
     }
 
     private void LoadfromClipboard()
