@@ -1,5 +1,6 @@
 ﻿using System.IO.Pipes;
 using System.Reflection;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace OutTb;
 
@@ -67,19 +68,45 @@ internal class MainForm : Form
             SetContent("Redirect", "Error, client handle not specified.");
             return;
         }
-        var pipeHandle = _args[1];
-        await using var pipeStream = new AnonymousPipeClientStream(PipeDirection.In, pipeHandle);
-        using var reader = new StreamReader(pipeStream);
-        var text = await reader.ReadToEndAsync();
         var title = "Redirect";
-
-        // title?
         if (_args.Length >= 4 && _args[2] == "-t")
         {
             title = _args[3];
         }
 
-        SetContent(title, text);
+        var pipeHandle = _args[1];
+        await using var pipeStream = new AnonymousPipeClientStream(PipeDirection.In, pipeHandle);
+        using var reader = new StreamReader(pipeStream);
+
+        string? content = null;
+        var line = await reader.ReadLineAsync();
+        while (line != null)
+        {
+            if (content == null)
+            {
+                Text = $"{title} - loading";
+                _outputTb.Enabled = true;
+                content = line;
+                _outputTb.Text = content;
+                _outputTb.Focus();
+            }
+            else
+            {
+                content += Environment.NewLine + line;
+                _outputTb.Text = content;
+            }
+
+            line = await reader.ReadLineAsync();
+        }
+
+        if (content == null)
+        {
+            SetContent(title, null);
+        }
+        else
+        {
+            Text = $"{title} - {GetLineCount(content)} lines";
+        }
     }
 
     private void LoadfromClipboard()
